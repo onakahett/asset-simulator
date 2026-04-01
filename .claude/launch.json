@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Static File Server (npx serve)",
+      "runtimeExecutable": "C:\\Users\\onaka\\Documents\\積立シミュレーター\\.claude\\serve.cmd",
+      "runtimeArgs": [],
+      "port": 3001
+    },
+    {
+      "name": "Static File Server (Python)",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8080"],
+      "port": 8080
+    }
+  ]
+}

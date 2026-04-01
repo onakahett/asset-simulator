@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where python:*)",
+      "Bash(where node:*)",
+      "Bash(where python3:*)",
+      "Bash(where ruby:*)",
+      "Bash(where php:*)",
+      "Bash(wmic os:*)",
+      "Bash(npx --version)",
+      "Read(//c/Program Files/nodejs//**)",
+      "Read(//c/Program Files \\(x86\\)/**)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 13744 /F)",
+      "Bash(cmd.exe /c \"taskkill /PID 13744 /F\")",
+      "Bash(\"C:\\\\Program Files\\\\nodejs\\\\npx.cmd\" serve . --listen 3000)",
+      "Bash(PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(cmd.exe /c \"netstat -ano | findstr :3000\")",
+      "Bash(cmd.exe /c \"netstat -ano\")",
+      "Bash(cmd.exe /c \"for %I in \\(\"\"C:\\\\Users\\\\onaka\\\\Documents\\\\積立シミュレーター\"\"\\) do echo %~sI\")",
+      "Bash(powershell.exe -Command \"\\(New-Object -ComObject Scripting.FileSystemObject\\).GetFolder\\(''C:\\\\Users\\\\onaka\\\\Documents\\\\積立シミュレーター''\\).ShortPath\")",
+      "WebSearch",
+      "Bash(where gh:*)",
+      "Bash(git --version)"
+    ]
+  }
+}

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資産運用シミュレーター</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Noto+Sans+JP:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --teal:     #0E8F69;
+  --teal-mid: #1D9E75;
+  --teal-lt:  #A8DFCC;
+  --teal-bg:  rgba(14,143,105,0.08);
+  --amber:    #C07A10;
+  --amber-lt: #F5C97A;
+  --amber-bg: rgba(192,122,16,0.08);
+  --slate:    #6B7280;
+  --slate-bg: rgba(107,114,128,0.07);
+  --red:      #D94F3D;
+  --purple:   #6C63D4;
+  --text:     #1A1A1A;
+  --text-2:   #6B7280;
+  --text-3:   #9CA3AF;
+  --border:   #E5E7EB;
+  --bg:       #F9FAFB;
+  --surface:  #FFFFFF;
+  --radius:   12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans','Noto Sans JP',sans-serif; background:var(--bg); color:var(--text); font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+
+header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; height:54px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.logo { display:flex; align-items:center; gap:9px; }
+.logo-mark { width:28px; height:28px; border-radius:8px; background:var(--teal-mid); display:flex; align-items:center; justify-content:center; }
+.logo-mark svg { width:15px; height:15px; fill:none; stroke:#fff; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.logo-text { font-size:15px; font-weight:500; letter-spacing:-0.01em; }
+.save-btn { background:var(--teal-mid); color:#fff; border:none; padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-family:inherit; font-weight:500; transition:background 0.15s,transform 0.1s; }
+.save-btn:hover { background:var(--teal); }
+.save-btn:active { transform:scale(0.97); }
+
+main { max-width:980px; margin:0 auto; padding:24px 20px 80px; display:grid; grid-template-columns:288px 1fr; gap:20px; }
+.sidebar { display:flex; flex-direction:column; gap:10px; }
+.content { display:flex; flex-direction:column; gap:14px; min-width:0; }
+
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+.card-title { font-size:10px; font-weight:500; color:var(--text-2); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px; }
+
+.phase-card { background:var(--surface); border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); }
+.phase-head { padding:7px 13px; font-size:12px; font-weight:500; color:#fff; }
+.phase-head.p1 { background:var(--teal-mid); }
+.phase-head.p2 { background:var(--amber); }
+.phase-head.p3 { background:var(--slate); }
+.phase-body { padding:11px 13px; display:flex; flex-direction:column; gap:10px; }
+
+.ctrl { display:flex; flex-direction:column; gap:2px; }
+.ctrl-label { font-size:11px; color:var(--text-3); }
+.ctrl-val { font-size:19px; font-weight:500; line-height:1.25; letter-spacing:-0.02em; min-height:24px; }
+.slider-row { display:flex; align-items:center; gap:6px; margin-top:4px; }
+.slider-row input[type=range] { flex:1; accent-color:var(--teal-mid); cursor:pointer; }
+.step-btn { width:24px; height:24px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text-2); font-size:15px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background 0.1s; user-select:none; }
+.step-btn:hover { background:var(--bg); color:var(--text); }
+.step-btn:active { background:var(--border); }
+
+.summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.metric { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:11px 13px; }
+.metric .ml { font-size:11px; color:var(--text-2); margin-bottom:3px; }
+.metric .mv { font-size:17px; font-weight:500; letter-spacing:-0.02em; }
+.metric .mv.green { color:var(--teal-mid); }
+.metric .mv.red { color:var(--red); }
+
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.phase-strip { display:flex; height:26px; }
+.phase-strip-seg { display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; color:rgba(255,255,255,0.92); overflow:hidden; white-space:nowrap; transition:flex 0.25s ease; }
+.phase-strip-seg.s1 { background:var(--teal-mid); }
+.phase-strip-seg.s2 { background:var(--amber); }
+.phase-strip-seg.s3 { background:var(--slate); }
+.chart-inner { padding:14px 14px 6px; }
+.chart-wrap { position:relative; width:100%; height:260px; }
+
+.legend { display:flex; flex-wrap:wrap; gap:10px 16px; padding:9px 14px 12px; border-top:1px solid var(--border); }
+.li { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-2); }
+.li-sq { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+.li-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* イベント・マイルストーン共通カード */
+.cf-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.cf-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--bg); }
+.cf-title { font-size:10px; font-weight:500; color:var(--text-2); letter-spacing:0.08em; text-transform:uppercase; }
+.add-btn { display:flex; align-items:center; gap:4px; background:transparent; border:1px solid var(--border); border-radius:7px; padding:4px 10px; font-size:12px; color:var(--text-2); cursor:pointer; font-family:inherit; transition:background 0.12s; }
+.add-btn:hover { background:var(--border); color:var(--text); }
+.cf-list { padding:6px 0; }
+.cf-empty { padding:14px; font-size:12px; color:var(--text-3); text-align:center; }
+.cf-row { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.cf-row:last-child { border-bottom:none; }
+.cf-badge { font-size:10px; font-weight:500; padding:2px 7px; border-radius:4px; white-space:nowrap; flex-shrink:0; }
+.cf-badge.draw { background:#FEF3C7; color:#92400E; }
+.cf-badge.ms { background:#EDE9FE; color:#4C1D95; }
+.cf-inputs { display:flex; align-items:center; gap:5px; flex:1; flex-wrap:wrap; font-size:12px; color:var(--text-2); min-width:0; }
+.cf-del { background:none; border:none; color:var(--text-3); cursor:pointer; font-size:18px; padding:0 2px; line-height:1; flex-shrink:0; }
+.cf-del:hover { color:var(--red); }
+
+input[type=text] { width:100%; border:1px solid var(--border); border-radius:7px; padding:4px 8px; font-size:12px; color:var(--text); background:var(--surface); font-family:inherit; }
+input[type=text]:focus { outline:none; border-color:var(--teal-mid); box-shadow:0 0 0 3px rgba(29,158,117,0.12); }
+input[type=number].ev-num { border:1px solid var(--border); border-radius:7px; padding:4px 6px; font-size:13px; color:var(--text); background:var(--surface); text-align:center; font-family:inherit; -moz-appearance:textfield; }
+input[type=number].ev-num::-webkit-inner-spin-button { -webkit-appearance:none; }
+input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); box-shadow:0 0 0 3px rgba(29,158,117,0.12); }
+
+.total-note { font-size:11px; color:var(--text-3); }
+.disclaimer { font-size:11px; color:var(--text-3); line-height:1.8; grid-column:1/-1; margin-top:8px; }
+@media (max-width:700px) { main { grid-template-columns:1fr; } }
+
+/* 印刷用スタイル */
+@media print {
+  @page { size: A4 landscape; margin: 12mm 14mm; }
+
+  header { position:static; height:32px; padding:0 10px; }
+  .logo-mark { width:22px; height:22px; }
+  .logo-text { font-size:13px; }
+  .save-btn, .step-btn, .slider-row input[type=range], .add-btn, .cf-del { display:none; }
+  input[type=number].ev-num, input[type=text] { border:none; background:transparent; box-shadow:none; padding:0; }
+
+  body { background:#fff; font-size:10px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  /* 全体レイアウト */
+  main { max-width:100%; padding:4px 0 0; grid-template-columns:195px 1fr; gap:10px; }
+
+  /* サイドバー：基本設定を2列グリッドで縦幅を節約 */
+  .sidebar { gap:5px; }
+  .card { padding:6px 9px; }
+  .card-title { margin-bottom:4px; font-size:9px; }
+  .card > div { display:grid; grid-template-columns:1fr 1fr; gap:5px 8px; }
+  .phase-body { gap:4px; padding:6px 8px; }
+  .phase-head { padding:4px 9px; font-size:10px; }
+  .ctrl { gap:0px; }
+  .ctrl-val { font-size:12px; min-height:18px; }
+  .ctrl-label { font-size:9px; }
+
+  /* コンテンツ側：2カラムグリッド */
+  .content { gap:5px; display:grid; grid-template-columns:1fr 1fr; }
+  .content > .summary-row,
+  .content > .total-note,
+  .content > .chart-card,
+  .content > .disclaimer { grid-column: 1 / -1; }
+
+  .total-note { font-size:9px; margin-top:-2px; }
+  .summary-row { gap:5px; }
+  .metric { padding:5px 8px; }
+  .metric .mv { font-size:13px; }
+  .metric .ml { font-size:9px; margin-bottom:1px; }
+
+  /* グラフ */
+  .chart-wrap { height:145px; }
+  .chart-inner { padding:6px 6px 2px; }
+  .legend { padding:4px 8px 5px; gap:4px 10px; }
+  .li { font-size:9px; }
+  .li-sq, .li-dot { width:8px; height:8px; }
+  .phase-strip { height:18px; }
+  .phase-strip-seg { font-size:9px; }
+
+  /* イベント・マイルストーン（横並び・コンパクト） */
+  .cf-header { padding:4px 8px; }
+  .cf-title { font-size:9px; }
+  .cf-list { padding:1px 0; }
+  .cf-row { padding:2px 6px; gap:3px; flex-wrap:nowrap; }
+  .cf-inputs { font-size:9px; gap:2px; flex-wrap:nowrap; }
+  .cf-badge { display:none; } /* セクションタイトルで判別できるので省略 */
+  .prt-hide { display:none; }
+  .prt-label { font-size:0; color:transparent; }
+  .prt-label::after { content:attr(data-short); font-size:9px; color:var(--text-2); }
+
+  .chart-card, .cf-card { page-break-inside:avoid; }
+  .disclaimer { font-size:9px; line-height:1.5; margin-top:2px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 16 16"><polyline points="1,13 5,7 9,10 15,3"/></svg></div>
+    <span class="logo-text">資産運用シミュレーター</span>
+  </div>
+  <button class="save-btn" onclick="window.print()">PDFでダウンロード</button>
+</header>
+
+<main>
+  <div class="sidebar">
+    <div class="card">
+      <div class="card-title">基本設定</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="ctrl">
+          <div class="ctrl-label">運用を始める年</div>
+          <div class="ctrl-val" id="startyear-out">2025年</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('startyear',-1)">−</button>
+            <input type="range" id="startyear" min="2020" max="2040" step="1" value="2025">
+            <button class="step-btn" onclick="step('startyear',1)">＋</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label">最初に用意するお金（元手）</div>
+          <div class="ctrl-val" id="p-out">¥1,000万</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('principal',-10)">−</button>
+            <input type="range" id="principal" min="10" max="7500" step="10" value="1000">
+            <button class="step-btn" onclick="step('principal',10)">＋</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label">年間利回り（想定）</div>
+          <div class="ctrl-val" id="r-out">7.0%</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('rate',-0.5)">−</button>
+            <input type="range" id="rate" min="1" max="15" step="0.5" value="7">
+            <button class="step-btn" onclick="step('rate',0.5)">＋</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head p1">ステップ1：積極的に積み立てる時期</div>
+      <div class="phase-body">
+        <div class="ctrl">
+          <div class="ctrl-label">毎年積み立てる金額</div>
+          <div class="ctrl-val" id="c1-out">¥140万</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('c1',-1)">−</button>
+            <input type="range" id="c1" min="0" max="375" step="1" value="140">
+            <button class="step-btn" onclick="step('c1',1)">＋</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label">続ける年数</div>
+          <div class="ctrl-val" id="y1-out">6年</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('y1',-1)">−</button>
+            <input type="range" id="y1" min="1" max="48" step="1" value="6">
+            <button class="step-btn" onclick="step('y1',1)">＋</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head p2">ステップ2：積み立てを減らす時期</div>
+      <div class="phase-body">
+        <div class="ctrl">
+          <div class="ctrl-label">毎年積み立てる金額</div>
+          <div class="ctrl-val" id="c2-out">¥75万</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('c2',-1)">−</button>
+            <input type="range" id="c2" min="0" max="375" step="1" value="75">
+            <button class="step-btn" onclick="step('c2',1)">＋</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-label">続ける年数</div>
+          <div class="ctrl-val" id="y2-out">6年</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('y2',-1)">−</button>
+            <input type="range" id="y2" min="1" max="48" step="1" value="3">
+            <button class="step-btn" onclick="step('y2',1)">＋</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head p3">ステップ3：積み立てをやめて運用を続ける時期</div>
+      <div class="phase-body">
+        <div class="ctrl">
+          <div class="ctrl-label">年数（積み立てなし・そのまま運用）</div>
+          <div class="ctrl-val" id="y3-out">11年</div>
+          <div class="slider-row">
+            <button class="step-btn" onclick="step('y3',-1)">−</button>
+            <input type="range" id="y3" min="1" max="48" step="1" value="33">
+            <button class="step-btn" onclick="step('y3',1)">＋</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="summary-row" id="summary"></div>
+    <div class="total-note" id="total-note"></div>
+
+    <div class="chart-card">
+      <div class="phase-strip" id="phase-strip"></div>
+      <div class="chart-inner">
+        <div class="chart-wrap"><canvas id="chart"></canvas></div>
+      </div>
+      <div class="legend">
+        <span class="li"><span class="li-sq" style="background:var(--teal-lt)"></span>元手（累計）</span>
+        <span class="li"><span class="li-sq" style="background:var(--teal-mid)"></span>運用益</span>
+        <span class="li"><span class="li-dot" style="background:var(--purple)"></span>チェックポイント</span>
+      </div>
+    </div>
+
+    <!-- 取り崩しイベント -->
+    <div class="cf-card">
+      <div class="cf-header">
+        <span class="cf-title">お金の引き出し計画</span>
+        <button class="add-btn" onclick="addEvent()">＋ 取り崩しを追加</button>
+      </div>
+      <div class="cf-list" id="cf-list">
+        <div class="cf-empty" id="cf-empty">まだありません。上のボタンで追加できます。</div>
+      </div>
+    </div>
+
+    <!-- マイルストーン -->
+    <div class="cf-card">
+      <div class="cf-header">
+        <span class="cf-title">残高チェック・ライフイベント</span>
+        <button class="add-btn" onclick="addMilestone()">＋ 追加</button>
+      </div>
+      <div class="cf-list" id="ms-list">
+        <div class="cf-empty" id="ms-empty" style="display:none">まだありません。上のボタンで追加できます。</div>
+      </div>
+    </div>
+
+    <p class="disclaimer">※ 本シミュレーターは複利運用の効果を視覚的に確認するための参考ツールです。表示される数値はあくまで試算であり、実際の運用成果を保証するものではありません。投資には価格変動リスクがあり、元本が保証されるものではありません。</p>
+  </div>
+</main>
+
+<script>
+let chart;
+let balances = [];
+let events = [
+  {id:0, year:13, amount:100, duration:3,  label:'長男大学学費用'},
+  {id:1, year:18, amount:100, duration:3,  label:'次男大学学費用'},
+  {id:2, year:25, amount:100, duration:1,  label:'長男結婚祝い'},
+  {id:3, year:30, amount:100, duration:1,  label:'次男結婚祝い'},
+  {id:4, year:23, amount:500, duration:20, label:'老後生活費'},
+];
+let eventIdSeq = 5;
+let milestones = [
+  {id:0, year:6,  memo:'長男小学4年生、母アルバイトに転職'},
+  {id:1, year:9,  memo:'長男中学生、マンション引っ越し'},
+  {id:2, year:13, memo:'長男大学生'},
+  {id:3, year:18, memo:'次男大学生'},
+  {id:4, year:23, memo:'父定年退職'},
+];
+let msIdSeq = 5;
+
+const fmtBig = v => {
+  const m = v / 10000;
+  if (Math.abs(m) >= 10000) return '¥'+(m/10000).toFixed(2)+'億';
+  return '¥'+Math.round(m).toLocaleString()+'万';
+};
+const fmtSlider = v => {
+  const m = v / 10000;
+  if (m >= 10000) return '¥'+(m/10000).toFixed(1)+'億';
+  return '¥'+Math.round(m).toLocaleString()+'万';
+};
+
+function step(id, delta) {
+  const el = document.getElementById(id);
+  const min = parseFloat(el.min), max = parseFloat(el.max);
+  el.value = Math.min(max, Math.max(min, parseFloat(el.value) + delta));
+  compute();
+}
+
+function getY() {
+  return parseInt(document.getElementById('y1').value)
+       + parseInt(document.getElementById('y2').value)
+       + parseInt(document.getElementById('y3').value);
+}
+
+/* ── 取り崩しイベント ── */
+function addEvent() {
+  const Y = getY();
+  events.push({ id:eventIdSeq++, year:Math.min(10,Y), amount:100, duration:10, label:'' });
+  renderEvents();
+  compute();
+}
+function removeEvent(id) {
+  events = events.filter(e => e.id !== id);
+  renderEvents();
+  compute();
+}
+
+function renderEvents() {
+  const list = document.getElementById('cf-list');
+  const empty = document.getElementById('cf-empty');
+  list.querySelectorAll('.cf-row').forEach(r => r.remove());
+  if (events.length === 0) { empty.style.display=''; return; }
+  empty.style.display = 'none';
+  const Y = getY();
+
+  events.forEach(ev => {
+    const row = document.createElement('div');
+    row.className = 'cf-row';
+    row.dataset.id = ev.id;
+    row.innerHTML = `
+      <span class="cf-badge draw">取り崩し</span>
+      <div class="cf-inputs">
+        <span class="prt-hide">経過</span>
+        <input type="number" class="ev-num ev-year" min="0" max="${Y}" value="${ev.year}" style="width:58px;">
+        <span class="prt-label" data-short="年目">年目から</span>
+        <input type="number" class="ev-num ev-duration" min="1" max="${Y}" value="${ev.duration}" style="width:58px;">
+        <span class="prt-label" data-short="年間">年間、毎年</span>
+        <input type="number" class="ev-num ev-amount" min="1" max="99999" value="${ev.amount}" style="width:72px;">
+        <span class="prt-label" data-short="万円">万円を引き出す</span>
+        <input type="text" class="ev-label" value="${ev.label}" placeholder="例：老後生活費" style="flex:1;min-width:80px;">
+      </div>
+      <button class="cf-del">×</button>`;
+    list.appendChild(row);
+
+    row.querySelector('.ev-year').addEventListener('change', e => {
+      ev.year = Math.min(Math.max(parseInt(e.target.value)||0, 0), Y);
+      e.target.value = ev.year;
+      compute();
+    });
+    row.querySelector('.ev-amount').addEventListener('change', e => {
+      ev.amount = Math.max(1, parseInt(e.target.value)||1);
+      e.target.value = ev.amount;
+      compute();
+    });
+    row.querySelector('.ev-duration').addEventListener('change', e => {
+      ev.duration = Math.max(1, parseInt(e.target.value)||1);
+      e.target.value = ev.duration;
+      compute();
+    });
+    row.querySelector('.ev-label').addEventListener('input', e => { ev.label = e.target.value; });
+    row.querySelector('.cf-del').addEventListener('click', () => removeEvent(ev.id));
+  });
+}
+
+/* ── マイルストーン ── */
+function addMilestone() {
+  const Y = getY();
+  milestones.push({ id:msIdSeq++, year:Math.min(10,Y), memo:'' });
+  renderMilestones();
+  updateDots(Y);
+}
+function removeMilestone(id) {
+  milestones = milestones.filter(m => m.id !== id);
+  renderMilestones();
+  updateDots(getY());
+}
+
+function renderMilestones() {
+  const list = document.getElementById('ms-list');
+  const empty = document.getElementById('ms-empty');
+  list.querySelectorAll('.cf-row').forEach(r => r.remove());
+  if (milestones.length === 0) { empty.style.display=''; return; }
+  empty.style.display = 'none';
+  const Y = getY();
+  const sYear = parseInt(document.getElementById('startyear').value);
+
+  milestones.forEach(ms => {
+    const yr = Math.min(Math.max(ms.year||0, 0), Y);
+    const bal = balances[yr] !== undefined ? balances[yr] : null;
+    const balStr = bal !== null ? fmtBig(bal) : '—';
+    const isNeg = bal !== null && bal < 0;
+
+    const row = document.createElement('div');
+    row.className = 'cf-row';
+    row.dataset.id = ms.id;
+    row.innerHTML = `
+      <span class="cf-badge ms">残高確認</span>
+      <div class="cf-inputs">
+        <span class="prt-hide">経過</span>
+        <input type="number" class="ev-num ms-yr" min="0" max="${Y}" value="${yr}" style="width:58px;">
+        <span class="ms-cal">年目（${sYear+yr}年）</span>
+        <span class="ms-bal ${isNeg?'negative':'positive'}" style="font-weight:500;color:${isNeg?'var(--red)':'var(--teal-mid)'};">${balStr}</span>
+        <input type="text" class="ms-memo" value="${ms.memo}" placeholder="例：住宅購入、定年退職 など" style="flex:1;min-width:100px;">
+      </div>
+      <button class="cf-del">×</button>`;
+    list.appendChild(row);
+
+    const yrInp = row.querySelector('.ms-yr');
+    yrInp.addEventListener('input', () => {
+      const v = Math.min(Math.max(parseInt(yrInp.value)||0, 0), Y);
+      ms.year = v;
+      const b = balances[v] !== undefined ? balances[v] : null;
+      row.querySelector('.ms-cal').textContent = `年目（${sYear+v}年）`;
+      const balEl = row.querySelector('.ms-bal');
+      balEl.textContent = b !== null ? fmtBig(b) : '—';
+      const neg = b !== null && b < 0;
+      balEl.style.color = neg ? 'var(--red)' : 'var(--teal-mid)';
+      updateDots(Y);
+    });
+    row.querySelector('.ms-memo').addEventListener('input', e => { ms.memo = e.target.value; });
+    row.querySelector('.cf-del').addEventListener('click', () => removeMilestone(ms.id));
+  });
+}
+
+function updateDots(Y) {
+  if (!chart) return;
+  const pts = Array(Y+1).fill(null);
+  milestones.forEach(ms => {
+    const y = Math.min(Math.max(ms.year||0, 0), Y);
+    if (balances[y] !== undefined) pts[y] = Math.round(balances[y]/10000);
+  });
+  chart.data.datasets[2].data = pts;
+  chart.update('none');
+}
+
+/* ── メイン計算 ── */
+function compute() {
+  const P     = parseFloat(document.getElementById('principal').value) * 10000;
+  const r     = parseFloat(document.getElementById('rate').value) / 100;
+  const C1    = parseFloat(document.getElementById('c1').value) * 10000;
+  const Y1    = parseInt(document.getElementById('y1').value);
+  const C2    = parseFloat(document.getElementById('c2').value) * 10000;
+  const Y2    = parseInt(document.getElementById('y2').value);
+  const Y3    = parseInt(document.getElementById('y3').value);
+  const Y     = Y1+Y2+Y3;
+  const sYear = parseInt(document.getElementById('startyear').value);
+
+  document.getElementById('startyear-out').textContent = sYear+'年';
+  document.getElementById('p-out').textContent  = fmtSlider(P);
+  document.getElementById('r-out').textContent  = parseFloat(document.getElementById('rate').value).toFixed(1)+'%';
+  document.getElementById('c1-out').textContent = fmtSlider(C1);
+  document.getElementById('y1-out').textContent = Y1+'年';
+  document.getElementById('c2-out').textContent = fmtSlider(C2);
+  document.getElementById('y2-out').textContent = Y2+'年';
+  document.getElementById('y3-out').textContent = Y3+'年';
+  document.getElementById('total-note').textContent = `合計運用期間：${Y}年（${sYear}年 〜 ${sYear+Y}年）`;
+
+  const strip = document.getElementById('phase-strip');
+  strip.innerHTML = `
+    <div class="phase-strip-seg s1" style="flex:${Y1}">F1 積極積立 ${Y1}年</div>
+    <div class="phase-strip-seg s2" style="flex:${Y2}">F2 積立縮小 ${Y2}年</div>
+    <div class="phase-strip-seg s3" style="flex:${Y3}">F3 運用継続 ${Y3}年</div>`;
+
+  const sw1=Y1, sw2=Y1+Y2;
+
+  const cfMap = {};
+  events.forEach(ev => {
+    for (let d=0; d<ev.duration; d++) {
+      const y = ev.year+d;
+      if (y<=Y) cfMap[y] = (cfMap[y]||0) + ev.amount*10000;
+    }
+  });
+
+  const labels=[], principalBars=[], interestBars=[];
+  balances = [];
+  let balance=P, totalP=P, totalCF=0;
+
+  for (let y=0; y<=Y; y++) {
+    labels.push((sYear+y)+'年');
+    const outflow = cfMap[y]||0;
+    if (outflow>0) {
+      balance = Math.max(0, balance-outflow);
+      totalCF += outflow;
+    }
+    balances.push(balance);
+
+    const balMan    = Math.round(balance/10000);
+    const totalPMan = Math.round(totalP/10000);
+    const pMan = Math.min(totalPMan, balMan);
+    const iMan = Math.max(0, balMan - pMan);
+    principalBars.push(pMan);
+    interestBars.push(iMan);
+
+    if (y<Y) {
+      const contrib = y<sw1 ? C1 : y<sw2 ? C2 : 0;
+      balance = balance*(1+r) + contrib;
+      totalP += contrib;
+    }
+  }
+
+  document.getElementById('summary').innerHTML = `
+    <div class="metric"><div class="ml">投資した合計額</div><div class="mv">${fmtBig(totalP)}</div></div>
+    <div class="metric"><div class="ml">最終的な資産額</div><div class="mv green">${fmtBig(balances[Y])}</div></div>
+    <div class="metric"><div class="ml">取り崩した合計</div><div class="mv ${totalCF>0?'red':''}">${totalCF>0?'▼ '+fmtBig(totalCF):'なし'}</div></div>`;
+
+  renderMilestones();
+
+  const msPts = Array(Y+1).fill(null);
+  milestones.forEach(ms => {
+    const y = Math.min(Math.max(ms.year||0,0), Y);
+    if (balances[y]!==undefined) msPts[y] = Math.round(balances[y]/10000);
+  });
+
+  const phasePlugin = {
+    id:'phaseBg',
+    beforeDatasetsDraw(ch) {
+      const { ctx, chartArea:ca } = ch;
+      if (!ca) return;
+      const meta = ch.getDatasetMeta(0).data;
+      if (!meta.length) return;
+      const gl = i => meta[i] ? meta[i].x - meta[i].width/2 : ca.left;
+      const gr = i => meta[i] ? meta[i].x + meta[i].width/2 : ca.right;
+
+      ctx.save();
+      ctx.beginPath(); ctx.rect(ca.left,ca.top,ca.right-ca.left,ca.bottom-ca.top); ctx.clip();
+      [
+        {from:0,  to:sw1, color:'rgba(14,143,105,0.07)'},
+        {from:sw1,to:sw2, color:'rgba(192,122,16,0.07)'},
+        {from:sw2,to:Y,   color:'rgba(107,114,128,0.06)'},
+      ].forEach(({from,to,color}) => {
+        if (from>=to) return;
+        ctx.fillStyle=color;
+        ctx.fillRect(gl(from), ca.top, gr(to-1)-gl(from), ca.bottom-ca.top);
+      });
+      [[sw1,'rgba(14,143,105,0.3)'],[sw2,'rgba(107,114,128,0.3)']].forEach(([idx,col]) => {
+        if (idx<=0||idx>=Y) return;
+        ctx.strokeStyle=col; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(gl(idx),ca.top); ctx.lineTo(gl(idx),ca.bottom); ctx.stroke();
+        ctx.setLineDash([]);
+      });
+      ctx.restore();
+
+      const strip = document.getElementById('phase-strip');
+      if (strip && ch.canvas) {
+        const dpr = window.devicePixelRatio||1;
+        strip.style.paddingLeft  = Math.max(0,ca.left)+'px';
+        strip.style.paddingRight = Math.max(0,ch.canvas.width/dpr-ca.right)+'px';
+      }
+    }
+  };
+
+  const datasets = [
+    { label:'投資元本', data:principalBars, backgroundColor:'#A8DFCC', stack:'a', borderRadius:0, order:3, borderWidth:0 },
+    { label:'運用益',   data:interestBars,  backgroundColor:'#0E8F69', stack:'a', borderRadius:2, order:3, borderWidth:0 },
+    { label:'チェックポイント', data:msPts,
+      type:'line', borderColor:'transparent', backgroundColor:'transparent',
+      pointRadius:msPts.map(v=>v!==null?7:0),
+      pointHoverRadius:msPts.map(v=>v!==null?9:0),
+      pointBackgroundColor:'#6C63D4', pointBorderColor:'#fff', pointBorderWidth:2,
+      tension:0, spanGaps:false, stack:undefined, order:0 },
+  ];
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('chart'), {
+    type:'bar', data:{labels,datasets}, plugins:[phasePlugin],
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:{duration:250},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label: ctx => {
+            const v = ctx.parsed.y;
+            if (v===null||v===undefined) return null;
+            const s = v>=10000?'¥'+(v/10000).toFixed(2)+'億':'¥'+v.toLocaleString()+'万';
+            return ctx.dataset.label+': '+s;
+          }
+        }}
+      },
+      scales:{
+        x:{ stacked:true, ticks:{maxTicksLimit:10,autoSkip:true,font:{size:11},color:'#9CA3AF'}, grid:{display:false}, border:{color:'#E5E7EB'} },
+        y:{ stacked:true, ticks:{font:{size:11},color:'#9CA3AF',callback:v=>v>=10000?'¥'+(v/10000).toFixed(1)+'億':'¥'+v.toLocaleString()+'万'}, grid:{color:'rgba(0,0,0,0.04)'}, border:{display:false} },
+      }
+    }
+  });
+}
+
+['principal','rate','c1','y1','c2','y2','y3','startyear'].forEach(id => {
+  document.getElementById(id).addEventListener('input', compute);
+});
+renderEvents();
+compute();
+
+// 印刷時にグラフを正しいサイズで再描画
+window.addEventListener('beforeprint', () => {
+  if (chart) {
+    chart.options.scales.x.ticks.maxTicksLimit = 6;
+    chart.resize(700, 145);
+    chart.update('none');
+  }
+});
+window.addEventListener('afterprint', () => {
+  if (chart) {
+    chart.options.scales.x.ticks.maxTicksLimit = 10;
+    chart.resize();
+    chart.update('none');
+  }
+});
+</script>
+</body>
+</html>

@@ -95,6 +95,7 @@ main { max-width:980px; margin:0 auto; padding:24px 20px 80px; display:grid; gri
 .cf-row:last-child { border-bottom:none; }
 .cf-badge { font-size:10px; font-weight:500; padding:2px 7px; border-radius:4px; white-space:nowrap; flex-shrink:0; }
 .cf-badge.draw { background:#FEF3C7; color:#92400E; }
+.cf-badge.income { background:#D1FAE5; color:#065F46; }
 .cf-badge.ms { background:#EDE9FE; color:#4C1D95; }
 .cf-inputs { display:flex; align-items:center; gap:5px; flex:1; flex-wrap:wrap; font-size:12px; color:var(--text-2); min-width:0; }
 .cf-del { background:none; border:none; color:var(--text-3); cursor:pointer; font-size:18px; padding:0 2px; line-height:1; flex-shrink:0; }
@@ -235,7 +236,7 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
           <div class="ctrl-val" id="y1-out">6年</div>
           <div class="slider-row">
             <button class="step-btn" onclick="step('y1',-1)">−</button>
-            <input type="range" id="y1" min="1" max="48" step="1" value="6">
+            <input type="range" id="y1" min="1" max="48" step="1" value="10">
             <button class="step-btn" onclick="step('y1',1)">＋</button>
           </div>
         </div>
@@ -259,7 +260,7 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
           <div class="ctrl-val" id="y2-out">6年</div>
           <div class="slider-row">
             <button class="step-btn" onclick="step('y2',-1)">−</button>
-            <input type="range" id="y2" min="1" max="48" step="1" value="3">
+            <input type="range" id="y2" min="1" max="48" step="1" value="5">
             <button class="step-btn" onclick="step('y2',1)">＋</button>
           </div>
         </div>
@@ -274,7 +275,7 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
           <div class="ctrl-val" id="y3-out">11年</div>
           <div class="slider-row">
             <button class="step-btn" onclick="step('y3',-1)">−</button>
-            <input type="range" id="y3" min="1" max="48" step="1" value="33">
+            <input type="range" id="y3" min="1" max="48" step="1" value="37">
             <button class="step-btn" onclick="step('y3',1)">＋</button>
           </div>
         </div>
@@ -295,6 +296,17 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
         <span class="li"><span class="li-sq" style="background:var(--teal-lt)"></span>元手（累計）</span>
         <span class="li"><span class="li-sq" style="background:var(--teal-mid)"></span>運用益</span>
         <span class="li"><span class="li-dot" style="background:var(--purple)"></span>チェックポイント</span>
+      </div>
+    </div>
+
+    <!-- 一時収入イベント -->
+    <div class="cf-card">
+      <div class="cf-header">
+        <span class="cf-title">一時収入（退職金・相続など）</span>
+        <button class="add-btn" onclick="addIncome()">＋ 収入を追加</button>
+      </div>
+      <div class="cf-list" id="income-list">
+        <div class="cf-empty" id="income-empty">まだありません。上のボタンで追加できます。</div>
       </div>
     </div>
 
@@ -327,12 +339,17 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
 <script>
 let chart;
 let balances = [];
+let incomes = [
+  {id:0, year:23, amount:1300, label:'退職金'},
+];
+let incomeIdSeq = 1;
+
 let events = [
   {id:0, year:13, amount:100, duration:3,  label:'長男大学学費用'},
   {id:1, year:18, amount:100, duration:3,  label:'次男大学学費用'},
   {id:2, year:25, amount:100, duration:1,  label:'長男結婚祝い'},
   {id:3, year:30, amount:100, duration:1,  label:'次男結婚祝い'},
-  {id:4, year:23, amount:500, duration:20, label:'老後生活費'},
+  {id:4, year:23, amount:689, duration:30, label:'老後生活費（年金差し引き後）'},
 ];
 let eventIdSeq = 5;
 let milestones = [
@@ -340,7 +357,7 @@ let milestones = [
   {id:1, year:9,  memo:'長男中学生、マンション引っ越し'},
   {id:2, year:13, memo:'長男大学生'},
   {id:3, year:18, memo:'次男大学生'},
-  {id:4, year:23, memo:'父定年退職'},
+  {id:4, year:23, memo:'父定年退職・老後開始'},
 ];
 let msIdSeq = 5;
 
@@ -366,6 +383,58 @@ function getY() {
   return parseInt(document.getElementById('y1').value)
        + parseInt(document.getElementById('y2').value)
        + parseInt(document.getElementById('y3').value);
+}
+
+/* ── 一時収入イベント ── */
+function addIncome() {
+  const Y = getY();
+  incomes.push({ id:incomeIdSeq++, year:Math.min(23,Y), amount:2000, label:'退職金' });
+  renderIncomes();
+  compute();
+}
+function removeIncome(id) {
+  incomes = incomes.filter(e => e.id !== id);
+  renderIncomes();
+  compute();
+}
+function renderIncomes() {
+  const list = document.getElementById('income-list');
+  const empty = document.getElementById('income-empty');
+  list.querySelectorAll('.cf-row').forEach(r => r.remove());
+  if (incomes.length === 0) { empty.style.display=''; return; }
+  empty.style.display = 'none';
+  const Y = getY();
+  const sYear = parseInt(document.getElementById('startyear').value);
+
+  incomes.forEach(inc => {
+    const row = document.createElement('div');
+    row.className = 'cf-row';
+    row.innerHTML = `
+      <span class="cf-badge income">収入</span>
+      <div class="cf-inputs">
+        <span class="prt-hide">経過</span>
+        <input type="number" class="ev-num inc-year" min="0" max="${Y}" value="${inc.year}" style="width:58px;">
+        <span class="prt-label" data-short="年目">年目（${sYear+inc.year}年）に</span>
+        <input type="number" class="ev-num inc-amount" min="1" max="99999" value="${inc.amount}" style="width:80px;">
+        <span class="prt-label" data-short="万円">万円を受け取る</span>
+        <input type="text" class="inc-label" value="${inc.label}" placeholder="例：退職金、相続" style="flex:1;min-width:80px;">
+      </div>
+      <button class="cf-del">×</button>`;
+    list.appendChild(row);
+
+    row.querySelector('.inc-year').addEventListener('change', e => {
+      inc.year = Math.min(Math.max(parseInt(e.target.value)||0, 0), Y);
+      e.target.value = inc.year;
+      compute();
+    });
+    row.querySelector('.inc-amount').addEventListener('change', e => {
+      inc.amount = Math.max(1, parseInt(e.target.value)||1);
+      e.target.value = inc.amount;
+      compute();
+    });
+    row.querySelector('.inc-label').addEventListener('input', e => { inc.label = e.target.value; });
+    row.querySelector('.cf-del').addEventListener('click', () => removeIncome(inc.id));
+  });
 }
 
 /* ── 取り崩しイベント ── */
@@ -537,12 +606,21 @@ function compute() {
     }
   });
 
+  const incomeMap = {};
+  incomes.forEach(inc => {
+    const y = Math.min(inc.year, Y);
+    incomeMap[y] = (incomeMap[y]||0) + inc.amount*10000;
+  });
+
   const labels=[], principalBars=[], interestBars=[];
   balances = [];
   let balance=P, totalP=P, totalCF=0;
 
   for (let y=0; y<=Y; y++) {
     labels.push((sYear+y)+'年');
+    const inflow = incomeMap[y]||0;
+    if (inflow>0) balance += inflow;
+
     const outflow = cfMap[y]||0;
     if (outflow>0) {
       balance = Math.max(0, balance-outflow);
@@ -653,6 +731,7 @@ function compute() {
 ['principal','rate','c1','y1','c2','y2','y3','startyear'].forEach(id => {
   document.getElementById(id).addEventListener('input', compute);
 });
+renderIncomes();
 renderEvents();
 compute();
 

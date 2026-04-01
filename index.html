@@ -113,7 +113,7 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
 
 /* 印刷用スタイル */
 @media print {
-  @page { size: A4 landscape; margin: 12mm 14mm; }
+  @page { size: A4 portrait; margin: 10mm 12mm; }
 
   header { position:static; height:32px; padding:0 10px; }
   .logo-mark { width:22px; height:22px; }
@@ -123,11 +123,11 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
 
   body { background:#fff; font-size:10px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
-  /* 全体レイアウト */
-  main { max-width:100%; padding:4px 0 0; grid-template-columns:195px 1fr; gap:10px; }
+  /* 全体レイアウト：縦1カラム */
+  main { max-width:100%; padding:4px 0 0; grid-template-columns:1fr; gap:8px; }
 
-  /* サイドバー：基本設定を2列グリッドで縦幅を節約 */
-  .sidebar { gap:5px; }
+  /* サイドバー：横並びで省スペース */
+  .sidebar { gap:5px; display:grid; grid-template-columns:1fr 1fr; }
   .card { padding:6px 9px; }
   .card-title { margin-bottom:4px; font-size:9px; }
   .card > div { display:grid; grid-template-columns:1fr 1fr; gap:5px 8px; }
@@ -739,7 +739,7 @@ compute();
 window.addEventListener('beforeprint', () => {
   if (chart) {
     chart.options.scales.x.ticks.maxTicksLimit = 6;
-    chart.resize(700, 145);
+    chart.resize(500, 145);
     chart.update('none');
   }
 });

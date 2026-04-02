@@ -38,6 +38,8 @@ header { background:var(--surface); border-bottom:1px solid var(--border); paddi
 .save-btn { background:var(--teal-mid); color:#fff; border:none; padding:7px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-family:inherit; font-weight:500; transition:background 0.15s,transform 0.1s; }
 .save-btn:hover { background:var(--teal); }
 .save-btn:active { transform:scale(0.97); }
+.io-btn { background:var(--slate); }
+.io-btn:hover { background:#4B5563; }
 
 main { max-width:980px; margin:0 auto; padding:24px 20px 80px; display:grid; grid-template-columns:288px 1fr; gap:20px; }
 .sidebar { display:flex; flex-direction:column; gap:10px; }
@@ -118,7 +120,7 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
   header { position:static; height:32px; padding:0 10px; }
   .logo-mark { width:22px; height:22px; }
   .logo-text { font-size:13px; }
-  .save-btn, .step-btn, .slider-row input[type=range], .add-btn, .cf-del { display:none; }
+  .save-btn, .io-btn, .step-btn, .slider-row input[type=range], .add-btn, .cf-del { display:none; }
   input[type=number].ev-num, input[type=text] { border:none; background:transparent; box-shadow:none; padding:0; }
 
   body { background:#fff; font-size:10px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -181,7 +183,11 @@ input[type=number].ev-num:focus { outline:none; border-color:var(--teal-mid); bo
     <div class="logo-mark"><svg viewBox="0 0 16 16"><polyline points="1,13 5,7 9,10 15,3"/></svg></div>
     <span class="logo-text">資産運用シミュレーター</span>
   </div>
-  <button class="save-btn" onclick="window.print()">PDFでダウンロード</button>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="save-btn io-btn" onclick="exportJSON()">設定をエクスポート</button>
+    <label class="save-btn io-btn" style="cursor:pointer;">設定をインポート<input type="file" accept=".json" style="display:none;" onchange="importJSON(event)"></label>
+    <button class="save-btn" onclick="window.print()">PDFでダウンロード</button>
+  </div>
 </header>
 
 <main>
@@ -734,6 +740,57 @@ function compute() {
 renderIncomes();
 renderEvents();
 compute();
+
+function exportJSON() {
+  const data = {
+    startyear: parseInt(document.getElementById('startyear').value),
+    principal: parseInt(document.getElementById('principal').value),
+    rate:      parseFloat(document.getElementById('rate').value),
+    c1: parseInt(document.getElementById('c1').value),
+    y1: parseInt(document.getElementById('y1').value),
+    c2: parseInt(document.getElementById('c2').value),
+    y2: parseInt(document.getElementById('y2').value),
+    y3: parseInt(document.getElementById('y3').value),
+    incomes, events, milestones
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const now = new Date();
+  const ts = now.getFullYear()
+    + ('0'+(now.getMonth()+1)).slice(-2)
+    + ('0'+now.getDate()).slice(-2)
+    + '-'
+    + ('0'+now.getHours()).slice(-2)
+    + ('0'+now.getMinutes()).slice(-2);
+  a.download = `asset-simulator_${ts}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      ['startyear','principal','rate','c1','y1','c2','y2','y3'].forEach(k => {
+        if (data[k] !== undefined) document.getElementById(k).value = data[k];
+      });
+      if (Array.isArray(data.incomes))    { incomes    = data.incomes;    incomeIdSeq = Math.max(0, ...incomes.map(x=>x.id))    + 1; }
+      if (Array.isArray(data.events))     { events     = data.events;     eventIdSeq  = Math.max(0, ...events.map(x=>x.id))     + 1; }
+      if (Array.isArray(data.milestones)) { milestones = data.milestones; msIdSeq     = Math.max(0, ...milestones.map(x=>x.id)) + 1; }
+      renderIncomes();
+      renderEvents();
+      compute();
+    } catch(err) {
+      alert('JSONの読み込みに失敗しました: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
 
 // 印刷時にグラフを正しいサイズで再描画
 window.addEventListener('beforeprint', () => {
